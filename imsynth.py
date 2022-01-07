@@ -1,10 +1,11 @@
+#!/usr/bin/env python
+
 '''
     A quick and dirty diagram-as-code toy language that generates images
 '''
 
 from PIL import Image,ImageDraw,ImageFont
 import sys
-
 
 # globals
 fcfg='tmp.art'
