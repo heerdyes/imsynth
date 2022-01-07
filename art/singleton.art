@@ -1,0 +1,11 @@
+# setup stuff
+wh 500 500
+bg 255 255 255
+fg 0 0 0
+fnt fonts/ocra.ttf
+mk singleton
+# now for the art part
+ln 50 50 300 50
+box 50 100 200 200
+txt 100 50 this is a test
+txt 100 150 second text line
