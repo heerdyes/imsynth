@@ -19,13 +19,20 @@ with open(fcfg) as fc:
     lns=fc.readlines()
     cfglns=[x.strip() for x in lns]
 
-for ln in cfglns:
-    if len(ln)==0:
-        continue
-    if ln.startswith('#'):
-        continue
+# pass 1 (label processing)
+for i in range(len(cfglns)):
+    ln=readtillsemicolon(cfglns[i])
     cmd,args=readtillspace(ln)
-    execinst(cmd,args)
+    if cmd=='lbl':
+        symtab['labels'][args]=i
+
+# pass 2 (actual execution)
+while symtab['PC']<len(cfglns):
+    ln=cfglns[symtab['PC']]
+    if len(ln)!=0:
+        cmd,args=readtillspace(ln)
+        execinst(cmd,args)
+    symtab['PC']+=1
 
 imgsave()
 

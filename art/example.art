@@ -1,0 +1,17 @@
+; setup stuff
+wh 600 400
+bg 255 255 255
+fg 0 0 0
+fnt fonts/ocra.ttf
+mk example
+
+; drawing
+mov a #0
+mov i #36
+lbl loop00
+ln 300 200 100 a
+add a a #10
+sub i i #1
+cmp i #0
+bne loop00
+ln 10 10 100 -90

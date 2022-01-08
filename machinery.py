@@ -2,7 +2,12 @@ from PIL import Image,ImageDraw,ImageFont
 from math import radians,sin,cos,pi
 
 # global symbol table
-symtab={}
+symtab={
+    'labels': {},
+    'vars': {},
+    'PC': 0,
+    'EQF': False
+}
 
 # functions
 def readtillspace(ln):
@@ -17,6 +22,16 @@ def readtillspace(ln):
     if len(cmd)<len(ln):
         args=ln[len(cmd)+1:]
     return ''.join(cmd),args
+
+def readtillsemicolon(ln):
+    cmd=[]
+    if ln.startswith(';'):
+        return ''
+    for c in ln:
+        if c==';':
+            break
+        cmd.append(c)
+    return ''.join(cmd)
 
 def imgbuild(imgnm):
     global symtab
@@ -52,13 +67,14 @@ def ln(x,y,r,th):
     
 def dln(x,y,r,th,n):
     np=x,y
+    oldfg=symtab['fgcolor']
     for i in range(n):
         if i%2==0:
-            symtab['fgcolor']=(0, 0, 64)
+            symtab['fgcolor']=oldfg
         else:
-            symtab['fgcolor']=(255,255,255)
+            symtab['fgcolor']=symtab['bgcolor']
         np=ln(np[0], np[1], r/n, th)
-    symtab['fgcolor']=(0, 0, 64)
+    symtab['fgcolor']=oldfg
     
 def drawrect(x,y,w,h):
     if 'canvas' not in symtab:
@@ -106,51 +122,89 @@ def setfnt(fntf):
     global symtab
     symtab['fontfile']=fntf
 
+def tokinterp(tok):
+    if 'vars' in symtab:
+        if tok in symtab['vars']:
+            return symtab['vars'][tok]
+    return tok
+
 def execinst(cmd,args):
     global symtab
     if cmd=='wh':
-        w,h=[int(x) for x in args.split(' ')]
+        w,h=[int(tokinterp(x)) for x in args.split(' ')]
         symtab['dimension']=w,h
     elif cmd=='bg':
-        r,g,b=[int(x) for x in args.split(' ')]
+        r,g,b=[int(tokinterp(x)) for x in args.split(' ')]
         symtab['bgcolor']=r,g,b
     elif cmd=='fg':
-        r,g,b=[int(x) for x in args.split(' ')]
+        r,g,b=[int(tokinterp(x)) for x in args.split(' ')]
         symtab['fgcolor']=r,g,b
     elif cmd=='mk':
         imgbuild(args)
     elif cmd=='ln':
-        params=[int(m) for m in args.split(' ')]
+        params=[int(tokinterp(m)) for m in args.split(' ')]
         ln(*params)
     elif cmd=='dln':
-        params=[int(m) for m in args.split(' ')]
+        params=[int(tokinterp(m)) for m in args.split(' ')]
         dln(*params)
     elif cmd=='box':
-        params=[int(m) for m in args.split(' ')]
+        params=[int(tokinterp(m)) for m in args.split(' ')]
         drawrect(*params)
     elif cmd=='txt':
         car,cdr=readtillspace(args)
-        x=int(car)
+        x=int(tokinterp(car))
         car,cdr=readtillspace(cdr)
-        y=int(car)
+        y=int(tokinterp(car))
         write(x,y,cdr)
     elif cmd=='fnt':
         setfnt(args)
     elif cmd=='arrow':
-        params=[int(m) for m in args.split(' ')]
+        params=[int(tokinterp(m)) for m in args.split(' ')]
         drawarrow(*params)
     elif cmd=='note':
-        params=[int(m) for m in args.split(' ')]
+        params=[int(tokinterp(m)) for m in args.split(' ')]
         drawnote(*params)
     elif cmd=='txtbox':
         car,cdr=readtillspace(args)
-        x=int(car)
+        x=int(tokinterp(car))
         car,cdr=readtillspace(cdr)
-        y=int(car)
+        y=int(tokinterp(car))
         car,cdr=readtillspace(cdr)
-        w=int(car)
+        w=int(tokinterp(car))
         car,cdr=readtillspace(cdr)
-        h=int(car)
+        h=int(tokinterp(car))
         drawrect(x,y,w,h)
         write(x,y,cdr)
+    elif cmd=='mov':
+        car,cdr=readtillspace(args)
+        varname=car
+        varvalue=cdr[1:] if cdr[0]=='#' else symtab['vars'][cdr]
+        if 'vars' not in symtab:
+            symtab['vars']={}
+        symtab['vars'][varname]=varvalue
+    elif cmd=='add':
+        p3=args.split(' ')
+        o1=p3[1][1:] if p3[1][0]=='#' else symtab['vars'][p3[1]]
+        o2=p3[2][1:] if p3[2][0]=='#' else symtab['vars'][p3[2]]
+        symtab['vars'][p3[0]]=int(o1)+int(o2)
+    elif cmd=='sub':
+        p3=args.split(' ')
+        o1=p3[1][1:] if p3[1][0]=='#' else symtab['vars'][p3[1]]
+        o2=p3[2][1:] if p3[2][0]=='#' else symtab['vars'][p3[2]]
+        symtab['vars'][p3[0]]=int(o1)-int(o2)
+    elif cmd=='b':
+        symtab['PC']=symtab['labels'][args]
+    elif cmd=='be':
+        if symtab['EQF']:
+            symtab['PC']=symtab['labels'][args]
+    elif cmd=='bne':
+        if not symtab['EQF']:
+            symtab['PC']=symtab['labels'][args]
+    elif cmd=='cmp':
+        p2=args.split(' ')
+        o1=p2[0][1:] if p2[0][0]=='#' else symtab['vars'][p2[0]]
+        o2=p2[1][1:] if p2[1][0]=='#' else symtab['vars'][p2[1]]
+        symtab['EQF']=int(o1)==int(o2)
+    elif cmd=='lbl':
+        return
 
